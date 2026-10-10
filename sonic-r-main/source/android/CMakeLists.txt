@@ -55,10 +55,12 @@ endforeach()
 list(APPEND SONICR_SOURCES
     "${SONICR_SDL_DIR}/src/fileio.c"
     "${SONICR_SDL_DIR}/src/lap_validation.c"
+    "${SONICR_SDL_DIR}/src/mod_vfs.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/platform_android.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/r_gles_backend.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/touch_overlay.c"
 )
+list(REMOVE_DUPLICATES SONICR_SOURCES)
 
 # Build libmain.so
 add_library(main SHARED ${SONICR_SOURCES})
@@ -66,6 +68,7 @@ add_library(main SHARED ${SONICR_SOURCES})
 target_include_directories(main PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${SONICR_SDL_DIR}/src
+    ${SONICR_SDL_DIR}/include
     ${SONICR_SDL_DIR}/src/sound
     ${SONICR_SDL_DIR}/src/net
     ${SONICR_SDL_DIR}/src/net/bearssl

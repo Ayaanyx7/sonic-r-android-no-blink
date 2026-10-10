@@ -11,6 +11,7 @@
 #include <string.h>
 #include "platform.h"
 #include "touch_overlay.h"
+#include "mod_vfs.h"
 #include "pad_bits.h"
 #include "gamepad_buttons.h"
 
@@ -414,6 +415,7 @@ int platform_init(int width, int height, int fullscreen, const char *title)
     SDL_GL_GetDrawableSize(g_sdlWindow, &dw, &dh);
     SDL_Log("Sonic R Android platform initialized successfully (drawable: %dx%d)", dw, dh);
     TouchOverlay_TestMultiTouch();
+    VFS_Init(platform_base_path());
 
     return 0;
 }

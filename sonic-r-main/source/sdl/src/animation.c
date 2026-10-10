@@ -9,6 +9,7 @@
 #include "sonicr_types.h"
 #include "sonicr_globals.h"
 #include "sonicr_functions.h"
+#include "mod_vfs.h"
 
 #define IABS(x) ({ int _v = (x); int _s = _v >> 31; (_v ^ _s) - _s; })
 
@@ -761,6 +762,10 @@ void UpdateFaceUVAnimation(Player *player, int *animList)
  * ===================================================================== */
 void DispatchFaceUVAnimation(Player *player)
 {
+    if (VFS_GetDisableBlink()) {
+        return;
+    }
+
     short charId = player->charId;
 
     if (charId == CHAR_EGGMAN || charId == CHAR_TAILS_DOLL || charId == CHAR_EGG_ROBO) {

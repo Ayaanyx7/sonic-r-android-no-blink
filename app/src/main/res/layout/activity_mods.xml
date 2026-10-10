@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_launcher"
+    android:fitsSystemWindows="true"
+    android:gravity="center"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/card_container"
+        android:layout_width="660dp"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true"
+        android:background="@drawable/card_placeholder"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="14dp">
+
+        <!-- Title Header -->
+        <TextView
+            android:id="@+id/mods_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.08"
+            android:text="@string/title_mods"
+            android:textColor="#FFCC00"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/mods_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.1"
+            android:text="VIRTUAL FILE SYSTEM (VFS)"
+            android:textAllCaps="true"
+            android:textColor="#40C4FF"
+            android:textSize="11sp" />
+
+        <!-- Storage Directory Indicator -->
+        <TextView
+            android:id="@+id/tv_mods_path"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="middle"
+            android:fontFamily="sans-serif"
+            android:maxLines="1"
+            android:text="Mods folder: files/mods/"
+            android:textColor="#94A3B8"
+            android:textSize="10sp" />
+
+        <View
+            android:layout_width="60dp"
+            android:layout_height="1.5dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="6dp"
+            android:background="#2640C4FF" />
+
+        <!-- Controls Toolbar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <!-- Master Toggle -->
+            <CheckBox
+                android:id="@+id/cb_master_enable"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:buttonTint="#FFCC00"
+                android:checked="true"
+                android:fontFamily="sans-serif-bold"
+                android:text="Enable Mods"
+                android:textColor="#E0F2FE"
+                android:textSize="13sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Import Mod Button -->
+            <Button
+                android:id="@+id/btn_import_mod"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/btn_primary"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.05"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="+ IMPORT MOD"
+                android:textColor="#1A0C00"
+                android:textSize="11sp" />
+
+            <!-- Refresh Button -->
+            <Button
+                android:id="@+id/btn_refresh"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/btn_secondary"
+                android:fontFamily="sans-serif-bold"
+                android:letterSpacing="0.05"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="REFRESH"
+                android:textColor="#80D8FF"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Mod List / Empty View Container -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginBottom="8dp">
+
+            <ScrollView
+                android:id="@+id/scroll_mods"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true">
+
+                <LinearLayout
+                    android:id="@+id/mods_list_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+
+            <TextView
+                android:id="@+id/tv_empty_mods"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:fontFamily="sans-serif-medium"
+                android:padding="24dp"
+                android:text="No mods installed.\n\nTap '+ IMPORT MOD' to select a mod folder or zip archive,\nor copy mods into your files/mods/ directory."
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Back Button -->
+        <Button
+            android:id="@+id/btn_back"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:background="@drawable/btn_secondary"
+            android:fontFamily="sans-serif-bold"
+            android:letterSpacing="0.08"
+            android:text="@string/btn_back"
+            android:textColor="#80D8FF"
+            android:textSize="12sp" />
+    </LinearLayout>
+</RelativeLayout>

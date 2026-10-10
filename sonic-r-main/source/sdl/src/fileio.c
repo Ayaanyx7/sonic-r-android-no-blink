@@ -5,6 +5,7 @@
 
 #include "fileio.h"
 #include "platform.h"
+#include "mod_vfs.h"
 #include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,6 +211,16 @@ FILE *sr_fOpen(const char *path, const char *mode)
                     full_path, mode, errno, strerror(errno));
         }
         return fp;
+    }
+
+    /* Read mode: check native VFS mods first */
+    char mod_path[1024];
+    if (VFS_ResolvePath(rel, mod_path, sizeof(mod_path))) {
+        FILE *fp = fopen(mod_path, mode);
+        if (fp) {
+            SDL_Log("sr_fOpen: [MOD VFS] Redirected '%s' -> '%s'", rel, mod_path);
+            return fp;
+        }
     }
 
     /* Read mode: attempt exact path first */
