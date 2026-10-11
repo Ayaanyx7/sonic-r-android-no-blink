@@ -56,6 +56,7 @@ list(APPEND SONICR_SOURCES
     "${SONICR_SDL_DIR}/src/fileio.c"
     "${SONICR_SDL_DIR}/src/lap_validation.c"
     "${SONICR_SDL_DIR}/src/mod_vfs.c"
+    "${SONICR_SDL_DIR}/src/video_config.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/platform_android.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/r_gles_backend.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/touch_overlay.c"

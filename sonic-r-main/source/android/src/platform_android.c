@@ -12,6 +12,7 @@
 #include "platform.h"
 #include "touch_overlay.h"
 #include "mod_vfs.h"
+#include "video_config.h"
 #include "pad_bits.h"
 #include "gamepad_buttons.h"
 
@@ -416,6 +417,7 @@ int platform_init(int width, int height, int fullscreen, const char *title)
     SDL_Log("Sonic R Android platform initialized successfully (drawable: %dx%d)", dw, dh);
     TouchOverlay_TestMultiTouch();
     VFS_Init(platform_base_path());
+    VideoConfig_Init(platform_base_path());
 
     return 0;
 }
@@ -860,6 +862,16 @@ Java_org_sonicr_android_GameActivity_nativeSaveSettings(JNIEnv *env, jclass claz
     SaveKeyMappings();
     SDL_Log("nativeSaveSettings: saved SONICR.INF, JOYSTICK.INF, KEYS.BIN");
 }
+
+JNIEXPORT void JNICALL
+Java_org_sonicr_android_GameActivity_nativeReloadVideoConfig(JNIEnv *env, jclass clazz)
+{
+    (void)env;
+    (void)clazz;
+    VideoConfig_Load();
+    SDL_Log("nativeReloadVideoConfig: reloaded video_config.json");
+}
+
 
 
 

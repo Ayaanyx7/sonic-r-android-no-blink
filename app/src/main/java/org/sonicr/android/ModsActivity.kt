@@ -3,9 +3,12 @@ package org.sonicr.android
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
@@ -40,10 +43,19 @@ class ModsActivity : Activity() {
         var isEnabled: Boolean
     )
 
+    data class DisplayConfig(
+        var aspectRatio: String = "auto",      // "auto", "16:9", "4:3"
+        var renderScale: String = "native",    // "native", "720p", "480p"
+        var hudSafeZone43: Boolean = true,
+        var fovMultiplier: Float = 1.0f
+    )
+
     private lateinit var binding: ActivityModsBinding
     private val scope = CoroutineScope(Dispatchers.Main)
     private val installedMods = mutableListOf<ModInfo>()
     private var modsMasterEnabled = true
+    private var currentDisplayConfig = DisplayConfig()
+    private var isUpdatingDisplayUI = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +86,181 @@ class ModsActivity : Activity() {
             showImportDialog()
         }
 
+        setupTabs()
+        setupDisplaySettings()
         loadMods()
+    }
+
+    private fun setupTabs() {
+        binding.tabMods.setOnClickListener {
+            switchTab(showMods = true)
+        }
+        binding.tabDisplay.setOnClickListener {
+            switchTab(showMods = false)
+        }
+    }
+
+    private fun switchTab(showMods: Boolean) {
+        if (showMods) {
+            binding.tabMods.setBackgroundResource(R.drawable.btn_primary)
+            binding.tabMods.setTextColor(Color.parseColor("#1A0C00"))
+            binding.tabDisplay.setBackgroundResource(R.drawable.btn_secondary)
+            binding.tabDisplay.setTextColor(Color.parseColor("#80D8FF"))
+            binding.viewModsContainer.visibility = View.VISIBLE
+            binding.viewDisplayContainer.visibility = View.GONE
+        } else {
+            binding.tabMods.setBackgroundResource(R.drawable.btn_secondary)
+            binding.tabMods.setTextColor(Color.parseColor("#80D8FF"))
+            binding.tabDisplay.setBackgroundResource(R.drawable.btn_primary)
+            binding.tabDisplay.setTextColor(Color.parseColor("#1A0C00"))
+            binding.viewModsContainer.visibility = View.GONE
+            binding.viewDisplayContainer.visibility = View.VISIBLE
+        }
+    }
+
+    private fun setupDisplaySettings() {
+        // 1. Aspect Ratio Spinner
+        val aspectEntries = arrayOf(
+            "Auto (Fullscreen / Hor+)",
+            "16:9 (Standard Widescreen)",
+            "4:3 (Classic Retro Pillarbox)"
+        )
+        val aspectValues = arrayOf("auto", "16:9", "4:3")
+        val aspectAdapter = ArrayAdapter(this, R.layout.item_spinner, aspectEntries)
+        aspectAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
+        binding.spinnerAspectRatio.adapter = aspectAdapter
+
+        binding.spinnerAspectRatio.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (!isUpdatingDisplayUI) {
+                    currentDisplayConfig.aspectRatio = aspectValues[position]
+                    saveDisplayConfig()
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        // 2. Render Scale Spinner
+        val scaleEntries = arrayOf(
+            "Native (Full Resolution)",
+            "720p (HD Balance)",
+            "480p (Retro Saturn)"
+        )
+        val scaleValues = arrayOf("native", "720p", "480p")
+        val scaleAdapter = ArrayAdapter(this, R.layout.item_spinner, scaleEntries)
+        scaleAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
+        binding.spinnerRenderScale.adapter = scaleAdapter
+
+        binding.spinnerRenderScale.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (!isUpdatingDisplayUI) {
+                    currentDisplayConfig.renderScale = scaleValues[position]
+                    saveDisplayConfig()
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        // 3. HUD Safe Zone
+        binding.cbHudSafeZone.setOnCheckedChangeListener { _, isChecked ->
+            if (!isUpdatingDisplayUI) {
+                currentDisplayConfig.hudSafeZone43 = isChecked
+                saveDisplayConfig()
+            }
+        }
+
+        // 4. FOV Multiplier Spinner
+        val fovEntries = arrayOf(
+            "1.0x (Original FOV)",
+            "1.1x (+10% Wider)",
+            "1.2x (+20% Wider)",
+            "1.3x (+30% Wider)",
+            "1.4x (+40% Wider)",
+            "1.5x (+50% Wider)"
+        )
+        val fovValues = floatArrayOf(1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f)
+        val fovAdapter = ArrayAdapter(this, R.layout.item_spinner, fovEntries)
+        fovAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
+        binding.spinnerFov.adapter = fovAdapter
+
+        binding.spinnerFov.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (!isUpdatingDisplayUI) {
+                    currentDisplayConfig.fovMultiplier = fovValues[position]
+                    saveDisplayConfig()
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        // 5. Reset button
+        binding.btnResetDisplay.setOnClickListener {
+            currentDisplayConfig = DisplayConfig()
+            saveDisplayConfig()
+            updateDisplayUIFromConfig()
+            Toast.makeText(this, "Display settings reset to defaults", Toast.LENGTH_SHORT).show()
+        }
+
+        loadDisplayConfig()
+    }
+
+    private fun loadDisplayConfig() {
+        val configFile = File(filesDir, "video_config.json")
+        currentDisplayConfig = DisplayConfig()
+        if (configFile.exists()) {
+            try {
+                val json = JSONObject(configFile.readText())
+                currentDisplayConfig.aspectRatio = json.optString("aspectRatio", "auto")
+                currentDisplayConfig.renderScale = json.optString("renderScale", "native")
+                currentDisplayConfig.hudSafeZone43 = json.optBoolean("hudSafeZone43", true)
+                currentDisplayConfig.fovMultiplier = json.optDouble("fovMultiplier", 1.0).toFloat()
+            } catch (e: Exception) {
+                android.util.Log.e("ModsActivity", "Failed to parse video_config.json", e)
+            }
+        }
+        updateDisplayUIFromConfig()
+    }
+
+    private fun updateDisplayUIFromConfig() {
+        isUpdatingDisplayUI = true
+
+        val aspectValues = arrayOf("auto", "16:9", "4:3")
+        val aspectIdx = aspectValues.indexOf(currentDisplayConfig.aspectRatio).let { if (it >= 0) it else 0 }
+        binding.spinnerAspectRatio.setSelection(aspectIdx)
+
+        val scaleValues = arrayOf("native", "720p", "480p")
+        val scaleIdx = scaleValues.indexOf(currentDisplayConfig.renderScale).let { if (it >= 0) it else 0 }
+        binding.spinnerRenderScale.setSelection(scaleIdx)
+
+        binding.cbHudSafeZone.isChecked = currentDisplayConfig.hudSafeZone43
+
+        val fovValues = floatArrayOf(1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f)
+        var fovIdx = 0
+        for (i in fovValues.indices) {
+            if (kotlin.math.abs(fovValues[i] - currentDisplayConfig.fovMultiplier) < 0.05f) {
+                fovIdx = i
+                break
+            }
+        }
+        binding.spinnerFov.setSelection(fovIdx)
+
+        isUpdatingDisplayUI = false
+    }
+
+    private fun saveDisplayConfig() {
+        try {
+            val json = JSONObject()
+            json.put("aspectRatio", currentDisplayConfig.aspectRatio)
+            json.put("renderScale", currentDisplayConfig.renderScale)
+            json.put("hudSafeZone43", currentDisplayConfig.hudSafeZone43)
+            json.put("fovMultiplier", currentDisplayConfig.fovMultiplier.toDouble())
+
+            val configFile = File(filesDir, "video_config.json")
+            configFile.writeText(json.toString(2))
+            android.util.Log.i("ModsActivity", "Saved video_config.json: $json")
+        } catch (e: Exception) {
+            android.util.Log.e("ModsActivity", "Failed to write video_config.json", e)
+        }
     }
 
     private fun showImportDialog() {

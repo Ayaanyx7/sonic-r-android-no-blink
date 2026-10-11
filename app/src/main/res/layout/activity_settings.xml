@@ -191,13 +191,27 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
+        <!-- Display & Widescreen Settings Button -->
+        <Button
+            android:id="@+id/btn_display_settings"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/btn_primary"
+            android:fontFamily="sans-serif-bold"
+            android:letterSpacing="0.06"
+            android:stateListAnimator="@null"
+            android:text="DISPLAY &amp; RESOLUTION SETTINGS"
+            android:textColor="#1A0C00"
+            android:textSize="12sp" />
+
         <!-- Bottom Action Row: About & Back -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="2dp">
 
             <Button
                 android:id="@+id/btn_about"

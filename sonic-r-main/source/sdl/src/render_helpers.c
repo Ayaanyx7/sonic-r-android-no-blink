@@ -11,6 +11,7 @@
 #include "r_types.h"
 #include "r_state.h"
 #include "r_draw.h"
+#include "video_config.h"
 
 #ifdef SONICR_DC
 #include <kos.h>
@@ -74,7 +75,23 @@ void DrawTexturedQuad(int xPos, int yPos, int depth, int width, int height,
     // 1 / 256 
     #define UV_SCALE_Q 0.00390625f
 
+#ifdef SONICR_ANDROID
+    float xOffset = 0.0f;
+    if (g_screenWidth > 640) {
+        if (VideoConfig_GetHudSafeZone()) {
+            /* 4:3 centered safe zone: keep gauges inside traditional sightlines */
+            xOffset = (float)(g_screenWidth - 640) * 0.5f;
+        } else {
+            /* Screen edge anchoring: anchor right-hand items to screen edge */
+            if (xPos >= 320) {
+                xOffset = (float)(g_screenWidth - 640);
+            }
+        }
+    }
+    float sx = (float)g_clipLeft + ((float)xPos + xOffset) * (float)g_projScaleXCurrent * POS_SCALE;
+#else
     float sx = (float)g_clipLeft + (float)xPos * (float)g_projScaleXCurrent * POS_SCALE;
+#endif
     float sy = (float)g_clipTop  + (float)yPos * (float)g_projScaleY * POS_SCALE;
     float sx2 = sx + (float)width  * (float)g_projScaleXCurrent * POS_SCALE;
     float sy2 = sy + (float)height * (float)g_projScaleY * POS_SCALE;

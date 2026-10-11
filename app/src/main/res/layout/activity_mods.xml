@@ -16,9 +16,9 @@
         android:gravity="center_horizontal"
         android:orientation="vertical"
         android:paddingStart="24dp"
-        android:paddingTop="14dp"
+        android:paddingTop="12dp"
         android:paddingEnd="24dp"
-        android:paddingBottom="14dp">
+        android:paddingBottom="12dp">
 
         <!-- Title Header -->
         <TextView
@@ -29,7 +29,7 @@
             android:letterSpacing="0.08"
             android:text="@string/title_mods"
             android:textColor="#FFCC00"
-            android:textSize="22sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <TextView
@@ -39,125 +39,331 @@
             android:layout_marginTop="1dp"
             android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.1"
-            android:text="VIRTUAL FILE SYSTEM (VFS)"
+            android:text="MODS &amp; DISPLAY SETTINGS"
             android:textAllCaps="true"
             android:textColor="#40C4FF"
             android:textSize="11sp" />
 
-        <!-- Storage Directory Indicator -->
-        <TextView
-            android:id="@+id/tv_mods_path"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:ellipsize="middle"
-            android:fontFamily="sans-serif"
-            android:maxLines="1"
-            android:text="Mods folder: files/mods/"
-            android:textColor="#94A3B8"
-            android:textSize="10sp" />
-
-        <View
-            android:layout_width="60dp"
-            android:layout_height="1.5dp"
-            android:layout_marginTop="5dp"
-            android:layout_marginBottom="6dp"
-            android:background="#2640C4FF" />
-
-        <!-- Controls Toolbar -->
+        <!-- Navigation Tabs: Mods vs Display Settings -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+            android:layout_height="34dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp"
+            android:orientation="horizontal">
 
-            <!-- Master Toggle -->
-            <CheckBox
-                android:id="@+id/cb_master_enable"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:buttonTint="#FFCC00"
-                android:checked="true"
-                android:fontFamily="sans-serif-bold"
-                android:text="Enable Mods"
-                android:textColor="#E0F2FE"
-                android:textSize="13sp" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <!-- Import Mod Button -->
             <Button
-                android:id="@+id/btn_import_mod"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:id="@+id/tab_mods"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:background="@drawable/btn_primary"
                 android:fontFamily="sans-serif-black"
                 android:letterSpacing="0.05"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="+ IMPORT MOD"
+                android:text="MODS (VFS)"
                 android:textColor="#1A0C00"
                 android:textSize="11sp" />
 
-            <!-- Refresh Button -->
             <Button
-                android:id="@+id/btn_refresh"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:id="@+id/tab_display"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_marginStart="8dp"
+                android:layout_weight="1"
                 android:background="@drawable/btn_secondary"
-                android:fontFamily="sans-serif-bold"
+                android:fontFamily="sans-serif-black"
                 android:letterSpacing="0.05"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="REFRESH"
+                android:text="DISPLAY SETTINGS"
                 android:textColor="#80D8FF"
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Mod List / Empty View Container -->
-        <FrameLayout
+        <!-- ============================================================= -->
+        <!-- TAB 1: MODS CONTAINER                                        -->
+        <!-- ============================================================= -->
+        <LinearLayout
+            android:id="@+id/view_mods_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginBottom="8dp">
+            android:orientation="vertical">
 
-            <ScrollView
-                android:id="@+id/scroll_mods"
+            <!-- Storage Directory Indicator -->
+            <TextView
+                android:id="@+id/tv_mods_path"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="middle"
+                android:fontFamily="sans-serif"
+                android:maxLines="1"
+                android:text="Mods folder: files/mods/"
+                android:textColor="#94A3B8"
+                android:textSize="10sp" />
+
+            <View
+                android:layout_width="60dp"
+                android:layout_height="1.5dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="6dp"
+                android:background="#2640C4FF" />
+
+            <!-- Controls Toolbar -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:fillViewport="true">
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginBottom="6dp">
 
+                <!-- Master Toggle -->
+                <CheckBox
+                    android:id="@+id/cb_master_enable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="#FFCC00"
+                    android:checked="true"
+                    android:fontFamily="sans-serif-bold"
+                    android:text="Enable Mods"
+                    android:textColor="#E0F2FE"
+                    android:textSize="12sp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <!-- Import Mod Button -->
+                <Button
+                    android:id="@+id/btn_import_mod"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:background="@drawable/btn_primary"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="0.05"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="+ IMPORT MOD"
+                    android:textColor="#1A0C00"
+                    android:textSize="10sp" />
+
+                <!-- Refresh Button -->
+                <Button
+                    android:id="@+id/btn_refresh"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/btn_secondary"
+                    android:fontFamily="sans-serif-bold"
+                    android:letterSpacing="0.05"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="REFRESH"
+                    android:textColor="#80D8FF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Mod List / Empty View Container -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="6dp">
+
+                <ScrollView
+                    android:id="@+id/scroll_mods"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fillViewport="true">
+
+                    <LinearLayout
+                        android:id="@+id/mods_list_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </ScrollView>
+
+                <TextView
+                    android:id="@+id/tv_empty_mods"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:padding="20dp"
+                    android:text="No mods installed.\n\nTap '+ IMPORT MOD' to select a mod folder or zip archive,\nor copy mods into your files/mods/ directory."
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- ============================================================= -->
+        <!-- TAB 2: DISPLAY SETTINGS CONTAINER                             -->
+        <!-- ============================================================= -->
+        <ScrollView
+            android:id="@+id/view_display_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone"
+            android:layout_marginBottom="6dp"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="4dp">
+
+                <!-- 1. Aspect Ratio Card -->
                 <LinearLayout
-                    android:id="@+id/mods_list_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
+                    android:orientation="vertical"
+                    android:background="#162032"
+                    android:padding="10dp"
+                    android:layout_marginBottom="8dp">
 
-            <TextView
-                android:id="@+id/tv_empty_mods"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:lineSpacingExtra="4dp"
-                android:fontFamily="sans-serif-medium"
-                android:padding="24dp"
-                android:text="No mods installed.\n\nTap '+ IMPORT MOD' to select a mod folder or zip archive,\nor copy mods into your files/mods/ directory."
-                android:textColor="#94A3B8"
-                android:textSize="12sp"
-                android:visibility="gone" />
-        </FrameLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Aspect Ratio"
+                        android:fontFamily="sans-serif-bold"
+                        android:textColor="#FFCC00"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Auto adapts to modern widescreen phones (Hor+). 16:9 standardizes wide display. 4:3 restores original retro pillarbox."
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="6dp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_aspect_ratio"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/btn_secondary" />
+                </LinearLayout>
+
+                <!-- 2. Internal Render Scale Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#162032"
+                    android:padding="10dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Internal Render Scale"
+                        android:fontFamily="sans-serif-bold"
+                        android:textColor="#FFCC00"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Native draws at crisp full display resolution. 720p balances battery &amp; speed. 480p gives authentic retro Saturn pixelation."
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="6dp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_render_scale"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/btn_secondary" />
+                </LinearLayout>
+
+                <!-- 3. HUD Safe Zone Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#162032"
+                    android:padding="10dp"
+                    android:layout_marginBottom="8dp">
+
+                    <CheckBox
+                        android:id="@+id/cb_hud_safe_zone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="#FFCC00"
+                        android:checked="true"
+                        android:fontFamily="sans-serif-bold"
+                        android:text="Center HUD in 4:3 Safe Zone"
+                        android:textColor="#FFCC00"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="When checked, gauges (speedometer, minimap, lap counter) stay centered inside traditional 4:3 sightlines. When unchecked, gauges push out to screen edges."
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp"
+                        android:layout_marginStart="28dp"
+                        android:layout_marginTop="1dp" />
+                </LinearLayout>
+
+                <!-- 4. FOV Multiplier Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#162032"
+                    android:padding="10dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Field of View (FOV) Multiplier"
+                        android:fontFamily="sans-serif-bold"
+                        android:textColor="#FFCC00"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1.0x is default 3D camera view. Higher values expand the camera view frustum further."
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="6dp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_fov"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/btn_secondary" />
+                </LinearLayout>
+
+                <!-- Reset Display Defaults Button -->
+                <Button
+                    android:id="@+id/btn_reset_display"
+                    android:layout_width="match_parent"
+                    android:layout_height="36dp"
+                    android:background="@drawable/btn_secondary"
+                    android:fontFamily="sans-serif-bold"
+                    android:letterSpacing="0.05"
+                    android:text="RESET DISPLAY TO DEFAULTS"
+                    android:textColor="#80D8FF"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </ScrollView>
 
         <!-- Back Button -->
         <Button
             android:id="@+id/btn_back"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:background="@drawable/btn_secondary"
             android:fontFamily="sans-serif-bold"
             android:letterSpacing="0.08"

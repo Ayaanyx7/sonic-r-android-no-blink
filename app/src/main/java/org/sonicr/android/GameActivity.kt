@@ -46,6 +46,9 @@ class GameActivity : SDLActivity() {
 
         @JvmStatic
         external fun nativeSaveSettings()
+
+        @JvmStatic
+        external fun nativeReloadVideoConfig()
     }
 
     override fun getLibraries(): Array<String> {
@@ -88,6 +91,7 @@ class GameActivity : SDLActivity() {
         applyNetplaySettings()
         applyAudioSettings()
         applyControlSettings()
+        applyVideoSettings()
     }
 
     override fun onResume() {
@@ -95,6 +99,16 @@ class GameActivity : SDLActivity() {
         applyNetplaySettings()
         applyAudioSettings()
         applyControlSettings()
+        applyVideoSettings()
+    }
+
+    private fun applyVideoSettings() {
+        try {
+            nativeReloadVideoConfig()
+            Log.i(TAG, "Reloaded video config")
+        } catch (e: Throwable) {
+            Log.w(TAG, "nativeReloadVideoConfig failed: ${e.message}")
+        }
     }
 
     override fun onPause() {

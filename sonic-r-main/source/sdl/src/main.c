@@ -17,6 +17,7 @@
 #include "sonicr_paths.h"
 #include "vertex_struct.h"
 #include "platform.h"
+#include "video_config.h"
 #include "net_transport.h"
 #include "net/matchmaker.h"
 #include "net/net_interp.h"
@@ -791,11 +792,25 @@ def SONICR_DC /* DC splash screen */
     /* InitD3DApp, CreateD3DApp
      * Original creates DirectDraw surfaces, D3D device, viewport.
      * Replaced by OpenGL context above. Set screen dimensions from it. */
+#ifdef SONICR_ANDROID
+    int dw = 0, dh = 0;
+    platform_get_drawable_size(&dw, &dh);
+    float targetAspect = VideoConfig_GetTargetAspect(dw, dh);
+    int targetW = (int)(480.0f * targetAspect + 0.5f);
+    targetW = (targetW + 1) & ~1; /* Ensure even width */
+    if (targetW < 640) targetW = 640;
+    g_screenWidth = targetW;
+    g_screenHeight = 480;
+    g_screenHeightBase = 480;   /* render height is derived from this per mode */
+    g_bitsPerPixel = 16;
+    g_surfaceStride = targetW;
+#else
     g_screenWidth = 640;
     g_screenHeight = 480;
     g_screenHeightBase = 480;   /* render height is derived from this per mode */
     g_bitsPerPixel = 16;
     g_surfaceStride = 640;
+#endif
 
     LoadGameState();
 

@@ -21,6 +21,7 @@
 #include "platform.h"
 #include "net_transport.h"
 #include "touch_overlay.h"
+#include "video_config.h"
 #include <android/log.h>
 #include <time.h>
 
@@ -988,6 +989,128 @@ static void RenderSyntheticTest(void)
 #endif
 
 /* =====================================================================
+ * Offscreen Framebuffer Object (FBO) for Render Scale (720p / 480p)
+ * ===================================================================== */
+static GLuint s_fbo = 0;
+static GLuint s_fboColorTex = 0;
+static GLuint s_fboDepthRb = 0;
+static int s_fboW = 0;
+static int s_fboH = 0;
+static int s_fboInited = 0;
+
+static GLuint s_blitProgram = 0;
+static GLint  s_blitLocPos = -1;
+static GLint  s_blitLocTex = -1;
+static GLint  s_blitLocSampler = -1;
+
+static int s_activeUseFbo = 0;
+static int s_curDispX = 0;
+static int s_curDispY = 0;
+static int s_curDispW = 0;
+static int s_curDispH = 0;
+static int s_curFullW = 0;
+static int s_curFullH = 0;
+
+static void InitBlitPipeline(void)
+{
+    if (s_blitProgram != 0) return;
+    const char *vsSrc =
+        "attribute vec2 a_pos;\n"
+        "attribute vec2 a_uv;\n"
+        "varying vec2 v_uv;\n"
+        "void main() {\n"
+        "    gl_Position = vec4(a_pos, 0.0, 1.0);\n"
+        "    v_uv = a_uv;\n"
+        "}\n";
+    const char *fsSrc =
+        "precision mediump float;\n"
+        "varying vec2 v_uv;\n"
+        "uniform sampler2D u_tex;\n"
+        "void main() {\n"
+        "    gl_FragColor = texture2D(u_tex, v_uv);\n"
+        "}\n";
+    GLuint vs = CompileShader(GL_VERTEX_SHADER, vsSrc);
+    GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fsSrc);
+    if (!vs || !fs) return;
+    s_blitProgram = glCreateProgram();
+    glAttachShader(s_blitProgram, vs);
+    glAttachShader(s_blitProgram, fs);
+    glLinkProgram(s_blitProgram);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    s_blitLocPos = glGetAttribLocation(s_blitProgram, "a_pos");
+    s_blitLocTex = glGetAttribLocation(s_blitProgram, "a_uv");
+    s_blitLocSampler = glGetUniformLocation(s_blitProgram, "u_tex");
+}
+
+static void EnsureFBO(int targetW, int targetH)
+{
+    if (s_fboInited && s_fboW == targetW && s_fboH == targetH) return;
+    if (!s_fboInited) {
+        glGenFramebuffers(1, &s_fbo);
+        glGenTextures(1, &s_fboColorTex);
+        glGenRenderbuffers(1, &s_fboDepthRb);
+        s_fboInited = 1;
+        InitBlitPipeline();
+    }
+    s_fboW = targetW;
+    s_fboH = targetH;
+
+    glBindTexture(GL_TEXTURE_2D, s_fboColorTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, targetW, targetH, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, s_fboDepthRb);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, targetW, targetH);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_fboColorTex, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s_fboDepthRb);
+
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        GLES_LOGE("FBO incomplete: 0x%x", status);
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static void RenderFboBlitQuad(void)
+{
+    if (!s_blitProgram || !s_fboColorTex) return;
+    glUseProgram(s_blitProgram);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_SCISSOR_TEST);
+    glDepthMask(GL_FALSE);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, s_fboColorTex);
+    glUniform1i(s_blitLocSampler, 0);
+
+    /* Full screen quad in NDC */
+    static const float verts[4 * 4] = {
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(s_blitLocPos);
+    glEnableVertexAttribArray(s_blitLocTex);
+    glVertexAttribPointer(s_blitLocPos, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), &verts[0]);
+    glVertexAttribPointer(s_blitLocTex, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), &verts[2]);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(s_blitLocPos);
+    glDisableVertexAttribArray(s_blitLocTex);
+}
+
+/* =====================================================================
  * Frame Lifecycle
  * ===================================================================== */
 
@@ -998,30 +1121,70 @@ void BeginFrame(void)
     if (fullW <= 0) fullW = 640;
     if (fullH <= 0) fullH = 480;
 
-    int vpW, vpH;
-    if (fullW * 3 > fullH * 4) {
-        vpH = fullH;
-        vpW = (fullH * 4) / 3;
+    float targetAspect = VideoConfig_GetTargetAspect(fullW, fullH);
+
+    int dispW, dispH;
+    if ((float)fullW / (float)fullH > targetAspect) {
+        dispH = fullH;
+        dispW = (int)((float)fullH * targetAspect + 0.5f);
     } else {
-        vpW = fullW;
-        vpH = (fullW * 3) / 4;
+        dispW = fullW;
+        dispH = (int)((float)fullW / targetAspect + 0.5f);
     }
-    int offsetX = (fullW - vpW) / 2;
-    int offsetY = (fullH - vpH) / 2;
+    int offsetX = (fullW - dispW) / 2;
+    int offsetY = (fullH - dispH) / 2;
 
-    g_glViewportOffsetX = offsetX;
-    g_glViewportOffsetY = offsetY;
-    g_glBackingWidth = vpW;
-    g_glBackingHeight = vpH;
+    /* Internal render scale (Native / 720p / 480p) */
+    RenderScaleMode scaleMode = VideoConfig_GetRenderScale();
+    int renderW = dispW;
+    int renderH = dispH;
+    int useFbo = 0;
 
-    /* Set 4:3 active viewport */
-    glViewport(offsetX, offsetY, vpW, vpH);
+    if (scaleMode == RENDER_SCALE_720P && dispH > 720) {
+        renderH = 720;
+        renderW = (int)(720.0f * targetAspect + 0.5f);
+        useFbo = 1;
+    } else if (scaleMode == RENDER_SCALE_480P && dispH > 480) {
+        renderH = 480;
+        renderW = (int)(480.0f * targetAspect + 0.5f);
+        useFbo = 1;
+    }
+
+    renderW = (renderW + 1) & ~1;
+
+    if (useFbo) {
+        EnsureFBO(renderW, renderH);
+        glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
+        glViewport(0, 0, renderW, renderH);
+        g_glViewportOffsetX = 0;
+        g_glViewportOffsetY = 0;
+        g_glBackingWidth = renderW;
+        g_glBackingHeight = renderH;
+    } else {
+        if (s_fboInited) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        glViewport(offsetX, offsetY, dispW, dispH);
+        g_glViewportOffsetX = offsetX;
+        g_glViewportOffsetY = offsetY;
+        g_glBackingWidth = dispW;
+        g_glBackingHeight = dispH;
+    }
+
+    s_curDispX = offsetX;
+    s_curDispY = offsetY;
+    s_curDispW = dispW;
+    s_curDispH = dispH;
+    s_curFullW = fullW;
+    s_curFullH = fullH;
+    s_activeUseFbo = useFbo;
+
     if (g_numHumans > 1) {
         static int s_lastVpLogFrame = -1;
         if (g_totalFrames - s_lastVpLogFrame >= 60 || s_lastVpLogFrame < 0) {
             s_lastVpLogFrame = g_totalFrames;
-            GLES_LOGI("[SPLIT_VIEWPORT] glViewport: x=%d y=%d w=%d h=%d (numHumans=%d)",
-                      offsetX, offsetY, vpW, vpH, g_numHumans);
+            GLES_LOGI("[SPLIT_VIEWPORT] glViewport: disp=%dx%d off=(%d,%d) render=%dx%d (fbo=%d, numHumans=%d)",
+                      dispW, dispH, offsetX, offsetY, renderW, renderH, useFbo, g_numHumans);
         }
     }
 
@@ -1047,45 +1210,24 @@ void FlipD3D(void)
     if (s_batchCount > 0) {
         R_FlushBatch();
     }
-#ifdef SONICR_ANDROID_RENDER_TEST
-    int fullW = 0, fullH = 0;
-    platform_get_drawable_size(&fullW, &fullH);
-    if (fullW <= 0) fullW = 640;
-    if (fullH <= 0) fullH = 480;
 
-    int vpW, vpH;
-    if (fullW * 3 > fullH * 4) {
-        vpH = fullH;
-        vpW = (fullH * 4) / 3;
-    } else {
-        vpW = fullW;
-        vpH = (fullW * 3) / 4;
+    if (s_activeUseFbo && s_fboInited) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, s_curFullW, s_curFullH);
+        glDisable(GL_SCISSOR_TEST);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glViewport(s_curDispX, s_curDispY, s_curDispW, s_curDispH);
+        RenderFboBlitQuad();
     }
-    int offsetX = (fullW - vpW) / 2;
-    int offsetY = (fullH - vpH) / 2;
 
-    g_glViewportOffsetX = offsetX;
-    g_glViewportOffsetY = offsetY;
-    g_glBackingWidth = vpW;
-    g_glBackingHeight = vpH;
-
-    /* Clear full window to Sonic Blue */
-    glViewport(0, 0, fullW, fullH);
-    glDisable(GL_SCISSOR_TEST);
-    glClearColor(0.1215f, 0.2784f, 0.6510f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    /* Render synthetic test shapes in 4:3 active viewport */
-    glViewport(offsetX, offsetY, vpW, vpH);
-    R_ResetState();
-    RenderSyntheticTest();
-#endif
     uint64_t nowNs = GetTimeNs();
     uint64_t frameDeltaNs = (s_lastFlipNs > 0) ? (nowNs - s_lastFlipNs) : 0;
     s_lastFlipNs = nowNs;
 
-    int fullW = 0, fullH = 0;
-    platform_get_drawable_size(&fullW, &fullH);
+    int fullW = s_curFullW > 0 ? s_curFullW : 640;
+    int fullH = s_curFullH > 0 ? s_curFullH : 480;
 
     uint64_t t_touch0 = GetTimeNs();
     TouchOverlay_Render(fullW, fullH);

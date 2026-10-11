@@ -150,6 +150,10 @@ class SettingsActivity : Activity() {
             Toast.makeText(this, R.string.toast_controls_reset, Toast.LENGTH_SHORT).show()
         }
 
+        binding.btnDisplaySettings.setOnClickListener {
+            startActivity(Intent(this, ModsActivity::class.java))
+        }
+
         binding.btnAbout.setOnClickListener {
             startActivity(Intent(this, AboutActivity::class.java))
         }

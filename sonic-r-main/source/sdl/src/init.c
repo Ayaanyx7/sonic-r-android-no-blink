@@ -12,6 +12,7 @@
 #include <math.h>
 #ifdef SONICR_SDL
 #include "platform.h"
+#include "video_config.h"
 #endif
 
 /* Externs / forward decls used by InitPadTypes */
@@ -406,14 +407,22 @@ void AnimateTrackObjects(void)
  */
 void SetScreenDimensions(void)
 {
-    int scaleX = (g_screenWidth << 8) / 0x140;
     DebugLog("SetScreenDimensions\n");
     g_dispCenterX = g_screenWidth / 2;
     g_dispCenterY = g_screenHeight / 2;
     g_screenScale = g_screenWidth / 0x140;
-    g_projScaleX = scaleX;
-    g_projScaleY = (g_screenHeight << 8) / 0xf0;
 
+#if defined(SONICR_ANDROID)
+    float fov = VideoConfig_GetFovMultiplier();
+    if (fov <= 0.0f) fov = 1.0f;
+    g_projScaleY = (int)(((g_screenHeight << 8) / 0xf0) / fov + 0.5f);
+    int scaleX = (int)(((g_screenHeight << 8) / 0xf0) / fov + 0.5f); /* Square pixels Hor+ */
+#else
+    int scaleX = (g_screenWidth << 8) / 0x140;
+    g_projScaleY = (g_screenHeight << 8) / 0xf0;
+#endif
+
+    g_projScaleX = scaleX;
     g_projScaleXCurrent = scaleX;
     g_screenCenterX = g_screenWidth / 2;
     g_screenCenterY = g_screenHeight / 2;
@@ -472,8 +481,15 @@ void ComputeViewportBounds(void)
     g_dispClipTop    = g_dispCenterY - g_dispHalfHeight / 2;
     g_dispClipRight  = g_dispCenterX + g_dispHalfWidth / 2 - 1;
     g_dispClipBottom = g_dispCenterY + g_dispHalfHeight / 2 - 1;
+#if defined(SONICR_ANDROID)
+    float fov = VideoConfig_GetFovMultiplier();
+    if (fov <= 0.0f) fov = 1.0f;
+    g_dispProjScaleY = (int)(((g_dispHalfHeight << 8) / 0xF0) / fov + 0.5f);
+    g_dispProjScaleX = g_dispProjScaleY;
+#else
     g_dispProjScaleX = (g_dispHalfWidth << 8) / 0x140;
     g_dispProjScaleY = (g_dispHalfHeight << 8) / 0xF0;
+#endif
 }
 
 void SetupViewportConfig(void);   /* defined below */
@@ -689,16 +705,25 @@ void SetupViewportConfig(void)
                 vp[off + 5] = g_dispProjScaleX;
             }
             else {
+#if defined(SONICR_ANDROID)
+                vp[off + 4] = g_dispProjScaleX;
+                vp[off + 5] = g_dispProjScaleX;
+#else
                 int vpW = vp[off + 9];
                 vp[off + 4] = (vpW * scaleXref) / scaleXdiv;
                 vp[off + 5] = (vpW * scaleXref) / scaleXdiv;
+#endif
             }
             int vpH;
             if (g_numHumans == 2) {
                 vpH = g_dispProjScaleY;
             }
             else {
+#if defined(SONICR_ANDROID)
+                vpH = g_dispProjScaleY;
+#else
                 vpH = (scaleYref * vp[off + 10]) / scaleYdiv;
+#endif
             }
             vp[off + 6] = vpH;
 
