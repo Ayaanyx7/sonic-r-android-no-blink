@@ -39,6 +39,8 @@ float VideoConfig_GetFovMultiplier(void);
 /* Computes target aspect ratio (width / height) given full drawable dimensions */
 float VideoConfig_GetTargetAspect(int fullW, int fullH);
 
+void UpdateDisplayDimensions(void);
+
 #ifdef __cplusplus
 }
 #endif

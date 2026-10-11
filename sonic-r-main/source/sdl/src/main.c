@@ -542,6 +542,27 @@ void PostRaceHandling2P(void)
     UpdatePlayerMovement(player1);                               /* 0x4d8ab8 */
 }
 
+void UpdateDisplayDimensions(void)
+{
+#ifdef SONICR_ANDROID
+    int dw = 0, dh = 0;
+    platform_get_drawable_size(&dw, &dh);
+    if (dw > 0 && dh > 0) {
+        float targetAspect = VideoConfig_GetTargetAspect(dw, dh);
+        int targetW = (int)(480.0f * targetAspect + 0.5f);
+        targetW = (targetW + 1) & ~1;
+        if (targetW < 640) targetW = 640;
+        if (g_screenWidth != targetW) {
+            g_screenWidth = targetW;
+            g_surfaceStride = targetW;
+            SetScreenDimensions();
+            ComputeViewportBounds();
+            SetupViewportConfig();
+        }
+    }
+#endif
+}
+
 /* WinMain @ 0x004CDFC4 — 8254 bytes */
 int main(int argc, char *argv[])
 {
@@ -651,6 +672,8 @@ int main(int argc, char *argv[])
     InitFileIO();
 
     InitInputMappings();
+
+    VideoConfig_Init(platform_base_path());
 
     /* loads SONICR.INF (saved options) */
     LoadGameSettings();
@@ -957,6 +980,7 @@ main_menu_init:
     InitOptionStuff();
 
 main_menu_loop:
+    UpdateDisplayDimensions();
     if (s_cmdUnlock) {
         g_gpAllTracksFlag = 1;          /* unlock Radiant Emerald in course select */
         /* Debug unlock (-u): all characters selectable + Super Sonic toggle.
@@ -1225,6 +1249,7 @@ char_select:                                   /* 0x4ce66e */
     /* Race setup */
 
 race_setup:
+    UpdateDisplayDimensions();
     printf("[NET_DEBUG] Entering race_setup: g_netSessionActive=%d, g_isNetworkGame=%d, g_netGameStarted=%d, g_netPlayerCount=%d\n",
            g_netSessionActive, g_isNetworkGame, g_netGameStarted, g_netPlayerCount);
     fflush(stdout);

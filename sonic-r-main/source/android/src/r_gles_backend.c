@@ -1153,6 +1153,10 @@ static void RenderFboBlitQuad(void)
     glUseProgram(0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    /* Re-enable depth testing and depth write upon exiting blit pass */
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+
     /* Invalidate cached state so next frame's R_FlushState correctly binds its program/textures */
     s_current.textureId = -99;
     s_currentTextured = -1;
@@ -1206,6 +1210,9 @@ void BeginFrame(void)
         if (EnsureFBO(renderW, renderH)) {
             glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
             glViewport(0, 0, renderW, renderH);
+            glDepthMask(GL_TRUE);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             g_glViewportOffsetX = 0;
             g_glViewportOffsetY = 0;
             g_glBackingWidth = renderW;
@@ -1617,6 +1624,12 @@ void ProcessTpageStates(void)
     glDisable(GL_SCISSOR_TEST);
     R_SetDepthWrite(1);
     R_FlushState();
+    if (s_activeUseFbo && s_fboInited) {
+        glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
+        glViewport(0, 0, s_fboW, s_fboH);
+    } else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

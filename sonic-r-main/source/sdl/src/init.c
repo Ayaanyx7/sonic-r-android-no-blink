@@ -579,6 +579,7 @@ int RenderHeightForMode(void)
 #endif
 void ApplyViewportGeometry(void)
 {
+    UpdateDisplayDimensions();
     g_screenHeight = RenderHeightForMode();
 
 #ifdef SONICR_DC
