@@ -9,6 +9,7 @@
 #include "sonicr_functions.h"
 #include "sonicr_paths.h"
 #include "player_struct.h"
+#include "mod_vfs.h"
 #include <stdarg.h>
 #include <string.h>
 
@@ -169,9 +170,18 @@ void LoadTextureSubRect(const char *filename, int tpage, int width, int height,
         return;
     }
 
-    FILE *fp = fOpen(filename, "rb");
+    char mod_path[1024];
+    const char *open_path = filename;
+    if (VFS_ResolvePath(filename, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
     if (fp == NULL) {
-        DebugLog("  Failed to open: %s\n", filename);
+        DebugLog("  Failed to open: %s\n", open_path);
         return;
     }
 
@@ -308,7 +318,16 @@ void TintBackgroundTPage(int tintR, int tintG, int tintB)
     /* Re-read raw file at full 8-bit precision and produce RGBA at full quality.
      * Handed off to R_SetPendingRGBA for lazy upload — avoids the 16bpp
      * precision loss that caused visible banding. */
-    FILE *fp = fOpen(PATH_GENERAL_RAW, "rb");
+    char mod_path[1024];
+    const char *open_path = PATH_GENERAL_RAW;
+    if (VFS_ResolvePath(PATH_GENERAL_RAW, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
     if (fp == NULL) {
         return;
     }

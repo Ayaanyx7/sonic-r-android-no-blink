@@ -9,6 +9,7 @@
 #include "sonicr_globals.h"
 #include "sonicr_functions.h"
 #include "sonicr_paths.h"
+#include "mod_vfs.h"
 #include "r_state.h"
 #include "r_texture.h"
 #include <string.h>
@@ -210,9 +211,18 @@ void LoadTPageRGB(int tpage, const char *filename)
     R_ClearTpageFilter(tpage);
     R_ClearNoColorKey(tpage);
 
-    FILE *fp = fOpen(filename, "rb");
+    char mod_path[1024];
+    const char *open_path = filename;
+    if (VFS_ResolvePath(filename, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
     if (fp == NULL) {
-        DebugLog("  Failed to open: %s\n", filename);
+        DebugLog("  Failed to open: %s\n", open_path);
         return;
     }
 
@@ -380,9 +390,18 @@ void LoadPlopSprites(void)
         return;
     }
 
-    FILE *fp = fOpen(path, "rb");
+    char mod_path[1024];
+    const char *open_path = path;
+    if (VFS_ResolvePath(path, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
     if (fp == NULL) {
-        DebugLog("  Failed to open: %s\n", path);
+        DebugLog("  Failed to open: %s\n", open_path);
         return;
     }
 
@@ -476,7 +495,16 @@ void D3D_LoadPlayfieldTilesRGB(const char *filename)
 #endif
 
     /* Open tile file — binary receives filename in EAX, calls fopen internally */
-    FILE *fp = fOpen(filename, "rb");
+    char mod_path[1024];
+    const char *open_path = filename;
+    if (VFS_ResolvePath(filename, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
     if (fp == NULL) {
         return;
     }

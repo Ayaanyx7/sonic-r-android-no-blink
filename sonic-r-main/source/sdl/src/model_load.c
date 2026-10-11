@@ -14,6 +14,7 @@
 /* Static buffer for GRD file loading — largest is MROBOT.GRD at 44832 bytes */
 static uint32_t __attribute__((aligned(32))) s_grdStorage[11208];
 #include "sonicr_paths.h"
+#include "mod_vfs.h"
 
 /* Forward declarations */
 void LoadModelData(const char *filename);
@@ -121,9 +122,19 @@ void RelocateModelVertices(int *arr, int count, int newBase, int oldBase, int fi
  */
 static void LoadCharacterGouraud(int charIdx)
 {
-    FILE *fp = fOpen(s_charGrdFiles[charIdx], "rb");
+    const char *filename = s_charGrdFiles[charIdx];
+    char mod_path[1024];
+    const char *open_path = filename;
+    if (VFS_ResolvePath(filename, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
     if (!fp) {
-        DebugLog("LoadCharacterGouraud: FAILED to open %s\n", s_charGrdFiles[charIdx]);
+        DebugLog("LoadCharacterGouraud: FAILED to open %s\n", open_path);
         return;
     }
 
@@ -449,10 +460,19 @@ static int UVByteToFixed(unsigned char b) {
  */
 void LoadModelData(const char *filename)
 {
-    FILE *fp = fOpen(filename, "rb");
+    char mod_path[1024];
+    const char *open_path = filename;
+    if (VFS_ResolvePath(filename, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
 
     if (fp == NULL) {
-        DebugLog("LoadModelData: FAILED to open %s\n", filename);
+        DebugLog("LoadModelData: FAILED to open %s\n", open_path);
         g_modelCount++;
         return;
     }
@@ -634,7 +654,16 @@ int *GetAnimFrameDataBase(void) {
  */
 void LoadAnimationData(const char *filename, int charId)
 {
-    FILE *fp = fOpen(filename, "rb");
+    char mod_path[1024];
+    const char *open_path = filename;
+    if (VFS_ResolvePath(filename, mod_path, sizeof(mod_path))) {
+        open_path = mod_path;
+    }
+
+    FILE *fp = fOpen(open_path, "rb");
+    if (fp == NULL && open_path == mod_path) {
+        fp = fopen(open_path, "rb");
+    }
     if (fp == NULL) {
         return;
     }

@@ -215,10 +215,12 @@ FILE *sr_fOpen(const char *path, const char *mode)
 
     /* Read mode: check native VFS mods first */
     char mod_path[1024];
-    if (VFS_ResolvePath(rel, mod_path, sizeof(mod_path))) {
+    if (VFS_ResolvePath(rel, mod_path, sizeof(mod_path)) ||
+        VFS_ResolvePath(path, mod_path, sizeof(mod_path)) ||
+        VFS_ResolvePath(full_path, mod_path, sizeof(mod_path))) {
         FILE *fp = fopen(mod_path, mode);
         if (fp) {
-            SDL_Log("sr_fOpen: [MOD VFS] Redirected '%s' -> '%s'", rel, mod_path);
+            SDL_Log("sr_fOpen: [MOD VFS] Redirected '%s' -> '%s'", path, mod_path);
             return fp;
         }
     }

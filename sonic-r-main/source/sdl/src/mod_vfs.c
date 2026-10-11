@@ -24,12 +24,16 @@
 #include <direct.h>
 #include <io.h>
 #define sr_strcasecmp _stricmp
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
 #else
 #include <dirent.h>
 #include <unistd.h>
 #include <strings.h>
 #define sr_strcasecmp strcasecmp
 #endif
+
+extern const char *platform_base_path(void);
 
 int g_modsEnabled = 1;
 int g_modDisableBlink = 0;
@@ -70,8 +74,15 @@ static int is_directory(const char *path)
 /* Helper: checks if a regular file exists */
 static int is_regular_file(const char *path)
 {
+    if (!path || !*path) return 0;
     struct stat st;
-    if (stat(path, &st) == 0 && !S_ISDIR(st.st_mode)) {
+    if (stat(path, &st) == 0) {
+        if (!S_ISDIR(st.st_mode)) return 1;
+        return 0;
+    }
+    FILE *fp = fopen(path, "rb");
+    if (fp) {
+        fclose(fp);
         return 1;
     }
     return 0;
@@ -88,18 +99,19 @@ static int vfs_find_case_insensitive(const char *dir_root, const char *rel_path,
         return 0;
     }
 
-#ifdef _WIN32
-    /* Windows NTFS is case-insensitive by default */
-    char candidate[MAX_MOD_PATH];
-    snprintf(candidate, sizeof(candidate), "%s/%s", dir_root, rel_path);
-    for (char *p = candidate; *p; p++) {
+    /* Fast path: test direct combined path */
+    char direct[MAX_MOD_PATH];
+    snprintf(direct, sizeof(direct), "%s/%s", dir_root, rel_path);
+    for (char *p = direct; *p; p++) {
         if (*p == '\\') *p = '/';
     }
-    if (is_regular_file(candidate)) {
-        strncpy(out_path, candidate, out_len - 1);
+    if (is_regular_file(direct)) {
+        strncpy(out_path, direct, out_len - 1);
         out_path[out_len - 1] = '\0';
         return 1;
     }
+
+#ifdef _WIN32
     return 0;
 #else
     /* Normalize rel_path and copy */
@@ -521,14 +533,15 @@ int VFS_ResolvePath(const char *rel_path, char *out_path, size_t out_len)
 
     /* If not initialized, attempt lazy init */
     if (!s_initialized) {
-        VFS_Init(s_basePath);
+        const char *base = platform_base_path();
+        VFS_Init(base ? base : s_basePath);
     }
 
     if (!g_modsEnabled || s_modCount == 0) {
         return 0;
     }
 
-    /* Normalize backslashes to forward slashes and strip leading "./" or "/" */
+    /* Step 1: Normalize backslashes to forward slashes */
     char norm_rel[MAX_MOD_PATH];
     size_t rl = strlen(rel_path);
     if (rl >= sizeof(norm_rel)) {
@@ -537,17 +550,73 @@ int VFS_ResolvePath(const char *rel_path, char *out_path, size_t out_len)
     for (size_t i = 0; i <= rl; i++) {
         norm_rel[i] = (rel_path[i] == '\\') ? '/' : rel_path[i];
     }
-    const char *clean_rel = norm_rel;
-    while (*clean_rel == '/' || (*clean_rel == '.' && *(clean_rel + 1) == '/')) {
-        if (*clean_rel == '/') clean_rel++;
-        else clean_rel += 2;
+
+    /* Step 2: Strip absolute base path prefixes if present */
+    const char *p = norm_rel;
+    if (s_basePath[0] != '\0') {
+        size_t bplen = strlen(s_basePath);
+        if (strncmp(p, s_basePath, bplen) == 0 && (p[bplen] == '/' || p[bplen] == '\0')) {
+            p += bplen;
+        }
+    }
+    const char *base = platform_base_path();
+    if (base && *base) {
+        size_t blen = strlen(base);
+        if (strncmp(p, base, blen) == 0 && (p[blen] == '/' || p[blen] == '\0')) {
+            p += blen;
+        }
     }
 
-    if (*clean_rel == '\0') {
+    /* Step 3: Strip leading dots and slashes (e.g. "./", "/", "././") */
+    while (*p == '/' || (*p == '.' && (*(p + 1) == '/' || *(p + 1) == '\0'))) {
+        if (*p == '/') p++;
+        else p += (*(p + 1) == '/') ? 2 : 1;
+    }
+
+    if (*p == '\0') {
         return 0;
     }
 
-    /* Check each active enabled mod */
+    /* Step 4: Build candidate subpath variants */
+    const char *candidates[8];
+    char gen_cand[MAX_MOD_PATH];
+    char bin_cand[MAX_MOD_PATH];
+    int cand_count = 0;
+
+    /* Candidate 0: Cleaned path as-is (e.g. "GENERAL/PLAYER00.RAW") */
+    candidates[cand_count++] = p;
+
+    /* Candidate 1: Strip leading "data/" or "DATA/" if present */
+    if (strncasecmp(p, "data/", 5) == 0) {
+        const char *no_data = p + 5;
+        while (*no_data == '/') no_data++;
+        if (*no_data != '\0') {
+            candidates[cand_count++] = no_data;
+        }
+    }
+
+    /* Candidate 2: Strip leading "files/" or "FILES/" if present */
+    if (strncasecmp(p, "files/", 6) == 0) {
+        const char *no_files = p + 6;
+        while (*no_files == '/') no_files++;
+        if (*no_files != '\0') {
+            candidates[cand_count++] = no_files;
+        }
+    }
+
+    /* Candidate 3: Filename alone if path contains directory separators */
+    const char *last_slash = strrchr(p, '/');
+    if (last_slash && *(last_slash + 1) != '\0') {
+        candidates[cand_count++] = last_slash + 1;
+    } else {
+        /* If no directory separator, also probe general/<file> and bin/<file> */
+        snprintf(gen_cand, sizeof(gen_cand), "general/%s", p);
+        candidates[cand_count++] = gen_cand;
+        snprintf(bin_cand, sizeof(bin_cand), "bin/%s", p);
+        candidates[cand_count++] = bin_cand;
+    }
+
+    /* Step 5: Check each active enabled mod in priority order */
     for (int i = 0; i < s_modCount; i++) {
         if (!s_mods[i].enabled) {
             continue;
@@ -555,27 +624,30 @@ int VFS_ResolvePath(const char *rel_path, char *out_path, size_t out_len)
 
         const ModEntry *mod = &s_mods[i];
 
-        /* Layout 1: mod->full_path / mod->include_dir / clean_rel */
+        /* Build search root directories in this mod */
+        char search_roots[4][MAX_MOD_PATH];
+        int root_count = 0;
+
+        /* Root 1: mod->full_path / mod->include_dir */
         if (mod->include_dir[0] != '\0') {
-            char candidate_dir[MAX_MOD_PATH];
-            snprintf(candidate_dir, sizeof(candidate_dir), "%s/%s", mod->full_path, mod->include_dir);
-            if (vfs_find_case_insensitive(candidate_dir, clean_rel, out_path, out_len)) {
-                return 1;
-            }
+            snprintf(search_roots[root_count++], MAX_MOD_PATH, "%s/%s", mod->full_path, mod->include_dir);
         }
 
-        /* Layout 2: mod->full_path / files / clean_rel */
+        /* Root 2: mod->full_path / files (if include_dir != "files") */
         if (sr_strcasecmp(mod->include_dir, "files") != 0) {
-            char candidate_dir[MAX_MOD_PATH];
-            snprintf(candidate_dir, sizeof(candidate_dir), "%s/files", mod->full_path);
-            if (vfs_find_case_insensitive(candidate_dir, clean_rel, out_path, out_len)) {
-                return 1;
-            }
+            snprintf(search_roots[root_count++], MAX_MOD_PATH, "%s/files", mod->full_path);
         }
 
-        /* Layout 3: mod->full_path / clean_rel */
-        if (vfs_find_case_insensitive(mod->full_path, clean_rel, out_path, out_len)) {
-            return 1;
+        /* Root 3: mod->full_path (root of mod) */
+        snprintf(search_roots[root_count++], MAX_MOD_PATH, "%s", mod->full_path);
+
+        for (int r = 0; r < root_count; r++) {
+            for (int c = 0; c < cand_count; c++) {
+                if (vfs_find_case_insensitive(search_roots[r], candidates[c], out_path, out_len)) {
+                    SDL_Log("VFS Redirect: %s -> %s", rel_path, out_path);
+                    return 1;
+                }
+            }
         }
     }
 
