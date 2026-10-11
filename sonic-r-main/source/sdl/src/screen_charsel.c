@@ -21,6 +21,7 @@ extern int  platform_poll_events(unsigned char *keystateOut, int keystateSize);
 extern void WaitForFrameCap(void);
 extern void UpdateVertexLighting(Player *player);
 extern void UpdateFrameTimers(void);
+extern void RemapCharacterTpages(void);
 
 /* RenderCharacterOnPodium — FUN_004437fc.
  * Binary calls this from CharacterSelectScreen at 0x48d725.
@@ -209,14 +210,19 @@ int CharacterSelectScreen(void)
 #ifdef SONICR_DC
     if (RunningFromSlowMedia()) PauseCD();   /* slow media: hold music so the load can't starve the stream */
 #endif
+    /* UI textures start at tpage 2 so they do not clobber character tpages 0 and 1 */
+    g_uiTexPage = 2;
     SetupMenuTexturesD3D();
-    /* D3D path only loads g_uiTexPage and g_uiTexPage+1.
-     * Character textures remain at tpages 14-15 from InitOptionStuff.
-     * Face tpage bytes already point to g_tpageCharacters/g_tpagePlayfield1
-     * via RemapCharacterTpages (FUN_00470460) called during init.
-     * SOFTWARE path (not used) would load PLAYER00/PLAYER01 into tpages 0-1
-     * and do face tpage remapping here — but that would overwrite
-     * track textures (RUIN00/RUIN03) needed by the course select track model. */
+
+    /* Remap character faces to tpages 0 and 1 */
+    g_tpageCharacters = 0;
+    g_tpagePlayfield1 = 1;
+    RemapCharacterTpages();
+
+    /* Reload character textures into tpages 0 and 1 (routes through VFS for active mods) */
+    LoadTPageRGB(0, PATH_PLAYER00_RAW);
+    LoadTPageRGB(1, PATH_PLAYER01_RAW);
+
     LoadTPageRGB(g_uiTexPage, PATH_GENERAL_RAW);
     TintBackgroundTPage(g_bgTintR, g_bgTintG, g_bgTintB);
     LoadTPageRGB(g_uiTexPage + 1, PATH_MENU_CHARSEL);
