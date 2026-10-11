@@ -4687,7 +4687,8 @@ static void RenderSignInScreen(const uint8_t *qrBuf, int qrSize,
 {
     int moduleSize = 4;
     int qrPixels = qrSize * moduleSize;
-    int originX = (640 - qrPixels) / 2;
+    int menuOff = (g_screenWidth > 640) ? (g_screenWidth - 640) / 2 : 0;
+    int originX = (640 - qrPixels) / 2 + menuOff;
     int originY = (480 - qrPixels) / 2;
 
     int pad = moduleSize * 2;
@@ -4732,7 +4733,7 @@ static void RenderSignInScreen(const uint8_t *qrBuf, int qrSize,
             urlPixSz = 2;
             urlCharW = 5 * urlPixSz + urlPixSz;
         }
-        int urlX = (640 - urlLen * urlCharW) / 2;
+        int urlX = (640 - urlLen * urlCharW) / 2 + menuOff;
         int urlY = 75;
 
         for (int k = 0; k < urlLen; k++) {
@@ -4766,7 +4767,7 @@ static void RenderSignInScreen(const uint8_t *qrBuf, int qrSize,
         int hdrCharW = 5 * hdrPixSz + hdrPixSz;
         int hdrLen = 0;
         while (hdr[hdrLen]) hdrLen++;
-        int hdrX = (640 - hdrLen * hdrCharW) / 2;
+        int hdrX = (640 - hdrLen * hdrCharW) / 2 + menuOff;
         int hdrY = 35;
         for (int k = 0; k < hdrLen; k++) {
             char c = hdr[k];
@@ -4797,7 +4798,7 @@ static void RenderSignInScreen(const uint8_t *qrBuf, int qrSize,
         int charW = 5 * pixSz + pixSz;
         int pLen = 0;
         while (prompt[pLen]) pLen++;
-        int px = (640 - pLen * charW) / 2;
+        int px = (640 - pLen * charW) / 2 + menuOff;
         int py = 480 - 50;
         for (int k = 0; k < pLen; k++) {
             char c = prompt[k];
@@ -6031,27 +6032,29 @@ render_frame:
                 else {
                     const char *idLine = "MATCHMAKER";
                     int idW = PixTextWidth(idLine, 2);
-                    DrawPixText(idLine, (640 - idW) / 2, 30, 2, 0xC0C0C0C0);
+                    int menuOff = (g_screenWidth > 640) ? (g_screenWidth - 640) / 2 : 0;
+                    DrawPixText(idLine, (640 - idW) / 2 + menuOff, 30, 2, 0xC0C0C0C0);
                 }
 
+                int menuOff = (g_screenWidth > 640) ? (g_screenWidth - 640) / 2 : 0;
                 const char *hdr = "SELECT A SESSION";
                 int hdrW = PixTextWidth(hdr, 4);
-                DrawPixText(hdr, (640 - hdrW) / 2, 60, 4, 0xFFFFFFFF);
+                DrawPixText(hdr, (640 - hdrW) / 2 + menuOff, 60, 4, 0xFFFFFFFF);
 
                 int picker_count = g_mmSessionList.count;
                 int rowY = 130;
                 int rowH = 28;
-                int rowX = 80;
-                int countryX = 420;
-                int pingX = 470;
-                int countX = 580;
+                int rowX = 80 + menuOff;
+                int countryX = 420 + menuOff;
+                int pingX = 470 + menuOff;
+                int countX = 580 + menuOff;
 
                 int cursor = s_pickerCursor;
 
                 if (picker_count == 0) {
                     const char *waitMsg = "NO SESSIONS YET - SEARCHING";
                     int w = PixTextWidth(waitMsg, 3);
-                    DrawPixText(waitMsg, (640 - w) / 2, 240, 3, 0xC0C0C0C0);
+                    DrawPixText(waitMsg, (640 - w) / 2 + menuOff, 240, 3, 0xC0C0C0C0);
                 }
                 else {
                     int maxRows = picker_count;

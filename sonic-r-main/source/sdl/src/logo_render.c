@@ -331,6 +331,17 @@ void RenderLogoQuads(void)
         int topRightIdx = s_logoQuadIndices[q][1];
         int botRightIdx = s_logoQuadIndices[q][2];
 
+#ifdef SONICR_ANDROID
+        float menuOffsetX = (g_screenWidth > 640) ? (float)((g_screenWidth - 640) / 2) : 0.0f;
+        float x0 = (float)s_logoGridXY[topLeftIdx][0] + menuOffsetX;
+        float y0 = (float)s_logoGridXY[topLeftIdx][1];
+        float x1 = (float)s_logoGridXY[topRightIdx][0] + menuOffsetX;
+        float y1 = y0;  /* same row */
+        float x2 = (float)s_logoGridXY[botRightIdx][0] + menuOffsetX;
+        float y2 = (float)s_logoGridXY[botRightIdx][1];
+        float x3 = x0;  /* same column as top-left */
+        float y3 = y2;  /* same row as bottom-right */
+#else
         float halfW = (float)g_dispHalfWidth;
         float halfH = (float)g_dispHalfHeight;
         float xScale = (float)LOGO_X_SCALE;
@@ -344,6 +355,7 @@ void RenderLogoQuads(void)
         float y2 = (float)s_logoGridXY[botRightIdx][1] * halfH * yScale + (float)g_dispClipTop;
         float x3 = x0;  /* same column as top-left */
         float y3 = y2;  /* same row as bottom-right */
+#endif
 
         /* UV coordinates */
         float uMax = s_logoUMax[q];

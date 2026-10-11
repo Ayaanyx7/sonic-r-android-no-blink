@@ -806,6 +806,11 @@ void RenderTitleLogo(void)
         int xBase = g_clipLeft +
             ((int)((g_projScaleXCurrent * 0x195 + sign * -0x200) -
             (unsigned int)((sign << 8) < 0)) >> 9);
+#ifdef SONICR_ANDROID
+        if (g_screenWidth > 640) {
+            xBase += (g_screenWidth - 640) / 2;
+        }
+#endif
         int sign2 = g_projScaleY * 0x186 >> 31;
         int yBase = g_clipTop +
             ((int)((g_projScaleY * 0x186 + sign2 * -0x200) -

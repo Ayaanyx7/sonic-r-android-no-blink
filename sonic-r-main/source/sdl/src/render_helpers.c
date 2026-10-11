@@ -78,14 +78,20 @@ void DrawTexturedQuad(int xPos, int yPos, int depth, int width, int height,
 #ifdef SONICR_ANDROID
     float xOffset = 0.0f;
     if (g_screenWidth > 640) {
-        if (VideoConfig_GetHudSafeZone()) {
-            /* 4:3 centered safe zone: keep gauges inside traditional sightlines */
-            xOffset = (float)(g_screenWidth - 640) * 0.5f;
-        } else {
-            /* Screen edge anchoring: anchor right-hand items to screen edge */
-            if (xPos >= 320) {
-                xOffset = (float)(g_screenWidth - 640);
+        int menuOffsetX = (g_screenWidth - 640) / 2;
+        if (g_inRaceHUD) {
+            if (VideoConfig_GetHudSafeZone()) {
+                /* 4:3 centered safe zone: keep gauges inside traditional sightlines */
+                xOffset = (float)menuOffsetX;
+            } else {
+                /* Screen edge anchoring: anchor right-hand items to screen edge */
+                if (xPos >= 320) {
+                    xOffset = (float)(g_screenWidth - 640);
+                }
             }
+        } else {
+            /* In all menus, mode select, results, etc., always center 2D UI quads */
+            xOffset = (float)menuOffsetX;
         }
     }
     float sx = (float)g_clipLeft + ((float)xPos + xOffset) * (float)g_projScaleXCurrent * POS_SCALE;

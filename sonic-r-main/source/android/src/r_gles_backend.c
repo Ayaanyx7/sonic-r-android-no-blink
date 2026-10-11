@@ -1031,27 +1031,55 @@ static void InitBlitPipeline(void)
         "}\n";
     GLuint vs = CompileShader(GL_VERTEX_SHADER, vsSrc);
     GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fsSrc);
-    if (!vs || !fs) return;
+    if (!vs || !fs) {
+        if (vs) glDeleteShader(vs);
+        if (fs) glDeleteShader(fs);
+        return;
+    }
     s_blitProgram = glCreateProgram();
     glAttachShader(s_blitProgram, vs);
     glAttachShader(s_blitProgram, fs);
+
+    glBindAttribLocation(s_blitProgram, 0, "a_pos");
+    glBindAttribLocation(s_blitProgram, 1, "a_uv");
+
     glLinkProgram(s_blitProgram);
     glDeleteShader(vs);
     glDeleteShader(fs);
-    s_blitLocPos = glGetAttribLocation(s_blitProgram, "a_pos");
-    s_blitLocTex = glGetAttribLocation(s_blitProgram, "a_uv");
+
+    GLint linked = 0;
+    glGetProgramiv(s_blitProgram, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        GLint infoLen = 0;
+        glGetProgramiv(s_blitProgram, GL_INFO_LOG_LENGTH, &infoLen);
+        if (infoLen > 1) {
+            char *infoLog = (char *)malloc(infoLen);
+            glGetProgramInfoLog(s_blitProgram, infoLen, NULL, infoLog);
+            SDL_Log("GLES2: Error linking blit program:\n%s", infoLog);
+            free(infoLog);
+        }
+        glDeleteProgram(s_blitProgram);
+        s_blitProgram = 0;
+        return;
+    }
+
+    s_blitLocPos = 0;
+    s_blitLocTex = 1;
     s_blitLocSampler = glGetUniformLocation(s_blitProgram, "u_tex");
 }
 
-static void EnsureFBO(int targetW, int targetH)
+static int EnsureFBO(int targetW, int targetH)
 {
-    if (s_fboInited && s_fboW == targetW && s_fboH == targetH) return;
+    InitBlitPipeline();
+    if (s_blitProgram == 0) {
+        return 0;
+    }
+    if (s_fboInited && s_fboW == targetW && s_fboH == targetH) return 1;
     if (!s_fboInited) {
         glGenFramebuffers(1, &s_fbo);
         glGenTextures(1, &s_fboColorTex);
         glGenRenderbuffers(1, &s_fboDepthRb);
         s_fboInited = 1;
-        InitBlitPipeline();
     }
     s_fboW = targetW;
     s_fboH = targetH;
@@ -1071,17 +1099,28 @@ static void EnsureFBO(int targetW, int targetH)
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s_fboDepthRb);
 
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE) {
-        GLES_LOGE("FBO incomplete: 0x%x", status);
-    }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        SDL_Log("FBO Error: Framebuffer incomplete (0x%X), falling back to native", status);
+        GLES_LOGE("FBO incomplete: 0x%x, falling back to direct rendering", status);
+        return 0;
+    }
+    return 1;
 }
 
 static void RenderFboBlitQuad(void)
 {
     if (!s_blitProgram || !s_fboColorTex) return;
+
+    /* Clean state: disable vertex attribute arrays to prevent invalid arrays from leaking */
+    for (int i = 0; i < 8; i++) {
+        glDisableVertexAttribArray(i);
+    }
+
     glUseProgram(s_blitProgram);
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
     glDisable(GL_BLEND);
     glDisable(GL_SCISSOR_TEST);
     glDepthMask(GL_FALSE);
@@ -1090,24 +1129,35 @@ static void RenderFboBlitQuad(void)
     glBindTexture(GL_TEXTURE_2D, s_fboColorTex);
     glUniform1i(s_blitLocSampler, 0);
 
-    /* Full screen quad in NDC */
-    static const float verts[4 * 4] = {
+    /* Full screen quad (two triangles) in NDC */
+    static const float s_quad[6 * 4] = {
         -1.0f, -1.0f,  0.0f, 0.0f,
          1.0f, -1.0f,  1.0f, 0.0f,
         -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f,
     };
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glEnableVertexAttribArray(s_blitLocPos);
-    glEnableVertexAttribArray(s_blitLocTex);
-    glVertexAttribPointer(s_blitLocPos, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), &verts[0]);
-    glVertexAttribPointer(s_blitLocTex, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), &verts[2]);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), &s_quad[0]);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), &s_quad[2]);
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    glDisableVertexAttribArray(s_blitLocPos);
-    glDisableVertexAttribArray(s_blitLocTex);
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+
+    glUseProgram(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    /* Invalidate cached state so next frame's R_FlushState correctly binds its program/textures */
+    s_current.textureId = -99;
+    s_currentTextured = -1;
+    s_lastMvpW = 0;
+    s_lastMvpH = 0;
 }
 
 /* =====================================================================
@@ -1153,13 +1203,22 @@ void BeginFrame(void)
     renderW = (renderW + 1) & ~1;
 
     if (useFbo) {
-        EnsureFBO(renderW, renderH);
-        glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
-        glViewport(0, 0, renderW, renderH);
-        g_glViewportOffsetX = 0;
-        g_glViewportOffsetY = 0;
-        g_glBackingWidth = renderW;
-        g_glBackingHeight = renderH;
+        if (EnsureFBO(renderW, renderH)) {
+            glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
+            glViewport(0, 0, renderW, renderH);
+            g_glViewportOffsetX = 0;
+            g_glViewportOffsetY = 0;
+            g_glBackingWidth = renderW;
+            g_glBackingHeight = renderH;
+        } else {
+            useFbo = 0;
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glViewport(offsetX, offsetY, dispW, dispH);
+            g_glViewportOffsetX = offsetX;
+            g_glViewportOffsetY = offsetY;
+            g_glBackingWidth = dispW;
+            g_glBackingHeight = dispH;
+        }
     } else {
         if (s_fboInited) {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);

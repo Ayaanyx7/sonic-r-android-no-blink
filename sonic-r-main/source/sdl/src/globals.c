@@ -41,6 +41,7 @@ int          g_renderEnabled;
 int          g_renderPass;
 int          g_surfaceLost;
 int          g_surfaceStride;
+int          g_inRaceHUD = 0;
 
 /* Frame Timing */
 DWORD        g_currentTime;

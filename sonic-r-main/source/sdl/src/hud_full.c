@@ -488,6 +488,7 @@ void DrawCollectEffectsD3D(CollectEffect *buf)  /* EAX = buffer */
  */
 void RenderHUD(void)
 {
+    g_inRaceHUD = 1;
     unsigned int startViewport, viewportCount;
 
     if (g_netSessionActive == 0 && g_isNetworkGame == 0) {
@@ -753,6 +754,7 @@ void RenderHUD(void)
     }
 
     EndFrame();
+    g_inRaceHUD = 0;
 }
 
 /* Character footstep-shadow billboards — populated by BuildFootShadowQuad (0x482BFC),

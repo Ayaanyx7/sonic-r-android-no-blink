@@ -197,6 +197,7 @@ extern int          g_clipBottom;           /* 0x006E98D0 */
 extern int          g_screenScale;          /* 0x006E98B8 — g_screenWidth/320 resolution scale */
 extern int          g_renderEnabled;        /* 0x008FB81C */
 extern int          g_surfaceStride;        /* 0x006E9890 — pixels per row incl. padding */
+extern int          g_inRaceHUD;            /* 1 during in-race HUD rendering, 0 in menus */
 
 
 /* =====================================================================
