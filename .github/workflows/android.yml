@@ -1,0 +1,103 @@
+name: Build Sonic R Android APK
+
+on:
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Main Repository (With Write Permissions)
+      uses: actions/checkout@v4
+      with:
+        # Crucial: Allows GitHub Actions to push the updated text file back to the repo
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Clone Missing Submodule Content Manually
+      run: |
+        # Clear out any empty/broken directories to prevent git clone overlap issues
+        rm -rf sonic-r-main/source/android/SDL2_mixer
+        
+        # Manually force-clone the missing library files straight into the correct target destination
+        git clone https://github.com/libsdl-org/SDL_mixer sonic-r-main/source/android/SDL2_mixer --branch SDL2 --depth 1
+        
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'gradle'
+
+    - name: Set up Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        # Adds the target architectures so Rust can build for Android phones
+        targets: aarch64-linux-android, armv7-linux-androideabi
+
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+
+    - name: Set Android SDK Environment Variables
+      run: |
+        echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+        # Matches the absolute paths pre-cached on the Ubuntu runner instance
+        echo "ANDROID_NDK_HOME=/usr/local/lib/android/sdk/ndk/27.3.13750724" >> $GITHUB_ENV
+        echo "ANDROID_NDK_ROOT=/usr/local/lib/android/sdk/ndk/27.3.13750724" >> $GITHUB_ENV
+        
+    - name: Accept Android SDK Licenses
+      run: |
+        yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        
+    - name: Compile Rust Sidecar (Netplay Binary)
+      run: |
+        # Ensure target directories exist inside the Android application layout
+        mkdir -p ../app/src/main/jniLibs/arm64-v8a
+        mkdir -p ../app/src/main/jniLibs/armeabi-v7a
+        
+        # Compile for 64-bit ARM and copy the resulting library file
+        cargo ndk -t arm64-v8a --platform 21 build --release
+        cp target/aarch64-linux-android/release/libsonicr_netplay.so ../app/src/main/jniLibs/arm64-v8a/
+        
+        # Compile for 32-bit ARM and copy the resulting library file
+        cargo ndk -t armeabi-v7a --platform 21 build --release
+        cp target/armv7-linux-androideabi/release/libsonicr_netplay.so ../app/src/main/jniLibs/armeabi-v7a/
+      working-directory: sidecar
+
+    - name: Grant Execute Permission for Gradlew
+      run: chmod +x gradlew
+      working-directory: app
+
+    - name: Build Debug APK with Gradle
+      run: ./gradlew assembleDebug --no-daemon
+      working-directory: app
+
+    - name: Auto-Update Binary Symbol Map
+      run: |
+        # Extract function/variable locations using NDK toolchain tools
+        $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm -gC app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libmain.so > android_symbols.txt
+        
+        # Configure local git environment bot details
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Stage the updated map file
+        git add android_symbols.txt
+        
+        # Check for modifications; commit and push back if changes exist
+        # "[skip ci]" ensures pushing doesn't spawn an infinite build loop
+        if ! git diff-index --quiet HEAD; then
+          git commit -m "chore: auto-update android symbol map [skip ci]"
+          git push
+        else
+          echo "Symbol layout unchanged. Skipping commit."
+        fi
+
+    - name: Upload Finished APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Sonic-R-Android-APK
+        path: app/build/outputs/apk/debug/SonicR-debug.apk
