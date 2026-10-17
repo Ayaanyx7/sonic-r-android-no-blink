@@ -317,6 +317,22 @@ void RenderLogoQuads(void)
     float z = (g_farClipFloat > 0.0f) ? ((float)LOGO_Z_DEPTH / g_farClipFloat) : 0.5f;
     float invZ = 1.0f / (float)LOGO_Z_DEPTH;
 
+#ifdef SONICR_ANDROID
+    float xGrid[4];
+    if (g_screenWidth > 640) {
+        float scaleX = (float)g_screenWidth / 640.0f;
+        xGrid[0] = 0.0f;
+        xGrid[1] = 256.0f * scaleX;
+        xGrid[2] = 512.0f * scaleX;
+        xGrid[3] = (float)g_screenWidth;
+    } else {
+        xGrid[0] = 0.0f;
+        xGrid[1] = 256.0f;
+        xGrid[2] = 512.0f;
+        xGrid[3] = 640.0f;
+    }
+#endif
+
     R_SetTexEnv(R_TEXENV_MODULATE);
 
     for (int q = 0; q < 6; q++) {
@@ -332,12 +348,12 @@ void RenderLogoQuads(void)
         int botRightIdx = s_logoQuadIndices[q][2];
 
 #ifdef SONICR_ANDROID
-        float menuOffsetX = (g_screenWidth > 640) ? (float)((g_screenWidth - 640) / 2) : 0.0f;
-        float x0 = (float)s_logoGridXY[topLeftIdx][0] + menuOffsetX;
+        int col = q % 3;
+        float x0 = xGrid[col];
         float y0 = (float)s_logoGridXY[topLeftIdx][1];
-        float x1 = (float)s_logoGridXY[topRightIdx][0] + menuOffsetX;
+        float x1 = xGrid[col + 1];
         float y1 = y0;  /* same row */
-        float x2 = (float)s_logoGridXY[botRightIdx][0] + menuOffsetX;
+        float x2 = x1;  /* same column as top-right */
         float y2 = (float)s_logoGridXY[botRightIdx][1];
         float x3 = x0;  /* same column as top-left */
         float y3 = y2;  /* same row as bottom-right */
