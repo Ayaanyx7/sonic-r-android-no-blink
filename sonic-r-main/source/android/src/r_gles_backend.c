@@ -1004,6 +1004,9 @@ static GLint  s_blitLocTex = -1;
 static GLint  s_blitLocSampler = -1;
 
 static int s_activeUseFbo = 0;
+static int s_frameStarted = 0;
+static int s_lastDrawableW = 0;
+static int s_lastDrawableH = 0;
 static int s_curDispX = 0;
 static int s_curDispY = 0;
 static int s_curDispW = 0;
@@ -1175,82 +1178,109 @@ void BeginFrame(void)
     if (fullW <= 0) fullW = 640;
     if (fullH <= 0) fullH = 480;
 
-    float targetAspect = VideoConfig_GetTargetAspect(fullW, fullH);
-
-    int dispW, dispH;
-    if ((float)fullW / (float)fullH > targetAspect) {
-        dispH = fullH;
-        dispW = (int)((float)fullH * targetAspect + 0.5f);
-    } else {
-        dispW = fullW;
-        dispH = (int)((float)fullW / targetAspect + 0.5f);
-    }
-    int offsetX = (fullW - dispW) / 2;
-    int offsetY = (fullH - dispH) / 2;
-
-    /* Internal render scale (Native / 720p / 480p) */
-    RenderScaleMode scaleMode = VideoConfig_GetRenderScale();
-    int renderW = dispW;
-    int renderH = dispH;
-    int useFbo = 0;
-
-    if (scaleMode == RENDER_SCALE_720P && dispH > 720) {
-        renderH = 720;
-        renderW = (int)(720.0f * targetAspect + 0.5f);
-        useFbo = 1;
-    } else if (scaleMode == RENDER_SCALE_480P && dispH > 480) {
-        renderH = 480;
-        renderW = (int)(480.0f * targetAspect + 0.5f);
-        useFbo = 1;
+    if (fullW != s_lastDrawableW || fullH != s_lastDrawableH) {
+        s_lastDrawableW = fullW;
+        s_lastDrawableH = fullH;
+        UpdateDisplayDimensions();
     }
 
-    renderW = (renderW + 1) & ~1;
+    if (!s_frameStarted) {
+        s_frameStarted = 1;
 
-    if (useFbo) {
-        if (EnsureFBO(renderW, renderH)) {
-            glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
-            glViewport(0, 0, renderW, renderH);
-            glDepthMask(GL_TRUE);
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            g_glViewportOffsetX = 0;
-            g_glViewportOffsetY = 0;
-            g_glBackingWidth = renderW;
-            g_glBackingHeight = renderH;
+        float targetAspect = VideoConfig_GetTargetAspect(fullW, fullH);
+
+        int dispW, dispH;
+        if ((float)fullW / (float)fullH > targetAspect) {
+            dispH = fullH;
+            dispW = (int)((float)fullH * targetAspect + 0.5f);
         } else {
-            useFbo = 0;
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            dispW = fullW;
+            dispH = (int)((float)fullW / targetAspect + 0.5f);
+        }
+        int offsetX = (fullW - dispW) / 2;
+        int offsetY = (fullH - dispH) / 2;
+
+        /* Internal render scale (Native / 720p / 480p) */
+        RenderScaleMode scaleMode = VideoConfig_GetRenderScale();
+        int renderW = dispW;
+        int renderH = dispH;
+        int useFbo = 0;
+
+        if (scaleMode == RENDER_SCALE_720P && dispH > 720) {
+            renderH = 720;
+            renderW = (int)(720.0f * targetAspect + 0.5f);
+            useFbo = 1;
+        } else if (scaleMode == RENDER_SCALE_480P && dispH > 480) {
+            renderH = 480;
+            renderW = (int)(480.0f * targetAspect + 0.5f);
+            useFbo = 1;
+        }
+
+        renderW = (renderW + 1) & ~1;
+
+        if (useFbo) {
+            if (EnsureFBO(renderW, renderH)) {
+                glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
+                glViewport(0, 0, renderW, renderH);
+                g_glViewportOffsetX = 0;
+                g_glViewportOffsetY = 0;
+                g_glBackingWidth = renderW;
+                g_glBackingHeight = renderH;
+
+                /* Clear color and depth ONCE per frame */
+                glDepthMask(GL_TRUE);
+                glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                s_statColorClears++;
+                s_statDepthClears++;
+            } else {
+                useFbo = 0;
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glViewport(offsetX, offsetY, dispW, dispH);
+                g_glViewportOffsetX = offsetX;
+                g_glViewportOffsetY = offsetY;
+                g_glBackingWidth = dispW;
+                g_glBackingHeight = dispH;
+            }
+        } else {
+            if (s_fboInited) {
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            }
             glViewport(offsetX, offsetY, dispW, dispH);
             g_glViewportOffsetX = offsetX;
             g_glViewportOffsetY = offsetY;
             g_glBackingWidth = dispW;
             g_glBackingHeight = dispH;
         }
-    } else {
-        if (s_fboInited) {
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        s_curDispX = offsetX;
+        s_curDispY = offsetY;
+        s_curDispW = dispW;
+        s_curDispH = dispH;
+        s_curFullW = fullW;
+        s_curFullH = fullH;
+        s_activeUseFbo = useFbo;
+
+        if (g_numHumans > 1) {
+            static int s_lastVpLogFrame = -1;
+            if (g_totalFrames - s_lastVpLogFrame >= 60 || s_lastVpLogFrame < 0) {
+                s_lastVpLogFrame = g_totalFrames;
+                GLES_LOGI("[SPLIT_VIEWPORT] glViewport: disp=%dx%d off=(%d,%d) render=%dx%d (fbo=%d, numHumans=%d)",
+                          dispW, dispH, offsetX, offsetY, renderW, renderH, useFbo, g_numHumans);
+            }
         }
-        glViewport(offsetX, offsetY, dispW, dispH);
-        g_glViewportOffsetX = offsetX;
-        g_glViewportOffsetY = offsetY;
-        g_glBackingWidth = dispW;
-        g_glBackingHeight = dispH;
-    }
-
-    s_curDispX = offsetX;
-    s_curDispY = offsetY;
-    s_curDispW = dispW;
-    s_curDispH = dispH;
-    s_curFullW = fullW;
-    s_curFullH = fullH;
-    s_activeUseFbo = useFbo;
-
-    if (g_numHumans > 1) {
-        static int s_lastVpLogFrame = -1;
-        if (g_totalFrames - s_lastVpLogFrame >= 60 || s_lastVpLogFrame < 0) {
-            s_lastVpLogFrame = g_totalFrames;
-            GLES_LOGI("[SPLIT_VIEWPORT] glViewport: disp=%dx%d off=(%d,%d) render=%dx%d (fbo=%d, numHumans=%d)",
-                      dispW, dispH, offsetX, offsetY, renderW, renderH, useFbo, g_numHumans);
+    } else {
+        /* Secondary pass: rebind target without clearing */
+        if (s_activeUseFbo && s_fboInited) {
+            glBindFramebuffer(GL_FRAMEBUFFER, s_fbo);
+            glViewport(0, 0, g_glBackingWidth, g_glBackingHeight);
+            g_glViewportOffsetX = 0;
+            g_glViewportOffsetY = 0;
+        } else {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glViewport(s_curDispX, s_curDispY, s_curDispW, s_curDispH);
+            g_glViewportOffsetX = s_curDispX;
+            g_glViewportOffsetY = s_curDispY;
         }
     }
 
@@ -1387,6 +1417,8 @@ void FlipD3D(void)
     s_statVertCount = 0;
     s_statColorClears = 0;
     s_statDepthClears = 0;
+
+    s_frameStarted = 0;
 }
 
 void R_Flip(void)

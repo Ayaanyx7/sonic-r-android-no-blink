@@ -885,6 +885,7 @@ def SONICR_DC /* DC splash screen */
     }
 
 title_sequence:
+    UpdateDisplayDimensions();
     InitCD();
     ResetInputState();
 
@@ -905,6 +906,7 @@ title_sequence:
     }
 
 title_screen_entry:
+    UpdateDisplayDimensions();
     ResetInputState();
     InitTitleScreen();
     DebugLog("RenderMode=RENDER_SOFT\n");
