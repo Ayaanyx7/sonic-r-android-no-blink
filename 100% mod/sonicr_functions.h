@@ -1,10 +1,10 @@
 #ifndef SONICR_FUNCTIONS_MOD_H
 #define SONICR_FUNCTIONS_MOD_H
 
-// Tells the compiler that the swappable function pointer variable lives in the main engine
-extern void (*InitDefaultTimeTables)(void);
+// References the existing static function signature in your game binary
+extern void InitDefaultTimeTables(void);
 
-// Tells the compiler that the global save block array lives in the main engine
-extern int g_saveBlock[554];
+// References the contiguous save block memory array in your game binary
+extern int g_saveBlock[];
 
 #endif
