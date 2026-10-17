@@ -67,11 +67,11 @@ class LauncherActivity : Activity() {
         val installed = AssetInstaller.isAssetsInstalled(this)
         if (installed) {
             AssetInstaller.ensureDirectoriesExist(this)
-            binding.assetStatusBadge.setText(R.string.asset_status_ready)
-            binding.assetStatusBadge.setTextColor(Color.parseColor("#4ADE80"))
+            binding.assetStatusBadge.visibility = View.GONE
             binding.btnPlay.setText(R.string.btn_play)
             binding.btnReinstall.visibility = View.VISIBLE
         } else {
+            binding.assetStatusBadge.visibility = View.VISIBLE
             binding.assetStatusBadge.setText(R.string.asset_status_missing)
             binding.assetStatusBadge.setTextColor(Color.parseColor("#FBBF24"))
             binding.btnPlay.setText(R.string.btn_install_assets)
