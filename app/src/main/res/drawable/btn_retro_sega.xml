@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Outer border: 2dp yellow #FFFF00 for authentic 2000s hover/press feedback -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="#FFFF00" />
+                </shape>
+            </item>
+            <!-- Main body: Brighter Sonic cyan gradient (#00B0FF to #005CB2) -->
+            <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#00B0FF"
+                        android:endColor="#005CB2" />
+                </shape>
+            </item>
+            <!-- Top specular glass highlight -->
+            <item android:top="2dp" android:bottom="23dp" android:left="3dp" android:right="3dp">
+                <shape android:shape="rectangle">
+                    <corners
+                        android:topLeftRadius="5dp"
+                        android:topRightRadius="5dp"
+                        android:bottomLeftRadius="1dp"
+                        android:bottomRightRadius="1dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#66FFFFFF"
+                        android:endColor="#00FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="#FFFF00" />
+                </shape>
+            </item>
+            <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#2979FF"
+                        android:centerColor="#0D47A1"
+                        android:endColor="#082E6B" />
+                </shape>
+            </item>
+            <item android:top="2dp" android:bottom="23dp" android:left="3dp" android:right="3dp">
+                <shape android:shape="rectangle">
+                    <corners
+                        android:topLeftRadius="5dp"
+                        android:topRightRadius="5dp"
+                        android:bottomLeftRadius="1dp"
+                        android:bottomRightRadius="1dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#80FFFFFF"
+                        android:endColor="#00FFFFFF" />
+                </shape>
+            </item>
+            <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <stroke android:width="1dp" android:color="#82B1FF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Normal State -->
+    <item>
+        <layer-list>
+            <!-- Outer border: 8dp radius, 2dp stroke #002B66 (deep Sega navy) -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="#002B66" />
+                </shape>
+            </item>
+            <!-- Main body gradient: Vertical gradient from #2979FF -> #0D47A1 -> #082E6B -->
+            <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#2979FF"
+                        android:centerColor="#0D47A1"
+                        android:endColor="#082E6B" />
+                </shape>
+            </item>
+            <!-- Top Specular Glass Highlight: Top half overlay fading from #66FFFFFF to #00FFFFFF -->
+            <item android:top="2dp" android:bottom="23dp" android:left="3dp" android:right="3dp">
+                <shape android:shape="rectangle">
+                    <corners
+                        android:topLeftRadius="5dp"
+                        android:topRightRadius="5dp"
+                        android:bottomLeftRadius="1dp"
+                        android:bottomRightRadius="1dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="#66FFFFFF"
+                        android:endColor="#00FFFFFF" />
+                </shape>
+            </item>
+            <!-- Inner chrome rim: 1dp stroke #82B1FF (icy cyan-blue) -->
+            <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <stroke android:width="1dp" android:color="#82B1FF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

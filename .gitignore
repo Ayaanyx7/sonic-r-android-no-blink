@@ -53,6 +53,7 @@ update-repo.sh
 # IDE / Editor Files
 # ====================================================================
 .idea/
+.kilo/
 *.iml
 *.ipr
 *.iws

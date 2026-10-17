@@ -98,12 +98,16 @@
         android:id="@+id/btn_join_room"
         android:layout_width="72dp"
         android:layout_height="34dp"
-        android:background="@drawable/btn_primary"
+        android:background="@drawable/btn_retro_play"
         android:fontFamily="sans-serif-black"
         android:letterSpacing="0.05"
+        android:shadowColor="#CC000000"
+        android:shadowDx="1"
+        android:shadowDy="2"
+        android:shadowRadius="2"
         android:stateListAnimator="@null"
         android:text="JOIN"
-        android:textColor="#261200"
+        android:textColor="#FFFFFF"
         android:textSize="12sp" />
 
 </LinearLayout>

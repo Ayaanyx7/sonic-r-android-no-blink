@@ -140,9 +140,9 @@ class MultiplayerActivity : Activity() {
 
     private fun updateRoleUI() {
         if (isHostMode) {
-            binding.btnRoleHost.setBackgroundResource(R.drawable.btn_primary)
-            binding.btnRoleHost.setTextColor(0xFF261200.toInt())
-            binding.btnRoleJoin.setBackgroundResource(R.drawable.btn_secondary)
+            binding.btnRoleHost.setBackgroundResource(R.drawable.btn_retro_play)
+            binding.btnRoleHost.setTextColor(0xFFFFFFFF.toInt())
+            binding.btnRoleJoin.setBackgroundResource(R.drawable.btn_retro_sega)
             binding.btnRoleJoin.setTextColor(0xFFE0F2FE.toInt())
 
             binding.layoutHostInputs.visibility = View.VISIBLE
@@ -152,9 +152,9 @@ class MultiplayerActivity : Activity() {
             binding.btnStartMatchmaking.isEnabled = true
             binding.tvStatus.text = "Configure host settings and click HOST & LAUNCH."
         } else {
-            binding.btnRoleJoin.setBackgroundResource(R.drawable.btn_primary)
-            binding.btnRoleJoin.setTextColor(0xFF261200.toInt())
-            binding.btnRoleHost.setBackgroundResource(R.drawable.btn_secondary)
+            binding.btnRoleJoin.setBackgroundResource(R.drawable.btn_retro_play)
+            binding.btnRoleJoin.setTextColor(0xFFFFFFFF.toInt())
+            binding.btnRoleHost.setBackgroundResource(R.drawable.btn_retro_sega)
             binding.btnRoleHost.setTextColor(0xFFE0F2FE.toInt())
 
             binding.layoutHostInputs.visibility = View.GONE

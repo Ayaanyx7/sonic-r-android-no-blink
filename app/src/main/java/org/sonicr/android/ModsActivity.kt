@@ -102,17 +102,17 @@ class ModsActivity : Activity() {
 
     private fun switchTab(showMods: Boolean) {
         if (showMods) {
-            binding.tabMods.setBackgroundResource(R.drawable.btn_primary)
-            binding.tabMods.setTextColor(Color.parseColor("#1A0C00"))
-            binding.tabDisplay.setBackgroundResource(R.drawable.btn_secondary)
-            binding.tabDisplay.setTextColor(Color.parseColor("#80D8FF"))
+            binding.tabMods.setBackgroundResource(R.drawable.btn_retro_play)
+            binding.tabMods.setTextColor(Color.parseColor("#FFFFFF"))
+            binding.tabDisplay.setBackgroundResource(R.drawable.btn_retro_sega)
+            binding.tabDisplay.setTextColor(Color.parseColor("#E0F2FE"))
             binding.viewModsContainer.visibility = View.VISIBLE
             binding.viewDisplayContainer.visibility = View.GONE
         } else {
-            binding.tabMods.setBackgroundResource(R.drawable.btn_secondary)
-            binding.tabMods.setTextColor(Color.parseColor("#80D8FF"))
-            binding.tabDisplay.setBackgroundResource(R.drawable.btn_primary)
-            binding.tabDisplay.setTextColor(Color.parseColor("#1A0C00"))
+            binding.tabMods.setBackgroundResource(R.drawable.btn_retro_sega)
+            binding.tabMods.setTextColor(Color.parseColor("#E0F2FE"))
+            binding.tabDisplay.setBackgroundResource(R.drawable.btn_retro_play)
+            binding.tabDisplay.setTextColor(Color.parseColor("#FFFFFF"))
             binding.viewModsContainer.visibility = View.GONE
             binding.viewDisplayContainer.visibility = View.VISIBLE
         }
